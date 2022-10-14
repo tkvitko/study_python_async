@@ -1,4 +1,5 @@
 import subprocess
+import chardet
 
 
 def show_result(source_list: list, show_len=False):
@@ -32,8 +33,12 @@ if __name__ == '__main__':
 
     # 3. Определить, какие из слов «attribute», «класс», «функция», «type» невозможно записать в байтовом типе.
 
-    # words = [b'attribute', b'класс', b'функция', b'type']
-    # SyntaxError: bytes can only contain ASCII literal characters
+    words = ['attribute', 'класс', 'функция', 'type']
+    for word in words:
+        try:
+            print(bytes(word, encoding='ascii'))
+        except UnicodeEncodeError:
+            print(f'Строку {word} нельзя записать в байтовом виде')
 
     # 4. Преобразовать слова «разработка», «администрирование», «protocol», «standard» из строкового представления
     # в байтовое и выполнить обратное преобразование (используя методы encode и decode).
@@ -62,9 +67,12 @@ if __name__ == '__main__':
         ping_yandex = subprocess.Popen(args, stdout=subprocess.PIPE)
 
         count = 0
+        string_encoding = None
         for line in ping_yandex.stdout:
             if count <= max_count:
-                l = line.decode(encoding='cp866')
+                if string_encoding is None:
+                    string_encoding = chardet.detect(line)['encoding']
+                l = line.decode(encoding=string_encoding)
                 print(type(l), l)
                 count += 1
             else:
@@ -74,9 +82,12 @@ if __name__ == '__main__':
     # «декоратор». Проверить кодировку файла по умолчанию. Принудительно открыть файл в формате Unicode и вывести его
     # содержимое.
 
-    # file test_file.txt
-    # test_file.txt: Unicode text, UTF-8 text
     source_file = 'test_file.txt'
-    with open(source_file, 'r', encoding='utf-8') as f:
+
+    # узнать кодировку файла
+    with open(source_file, 'rb') as fb:
+        file_encoding = chardet.detect(fb.read())['encoding']
+
+    with open(source_file, 'r', encoding=file_encoding) as f:
         for line in f.readlines():
             print(line)
