@@ -1,3 +1,5 @@
+import subprocess
+
 
 def show_result(source_list: list, show_len=False):
     for item in source_list:
@@ -6,6 +8,7 @@ def show_result(source_list: list, show_len=False):
 
 
 if __name__ == '__main__':
+
     # 1. Каждое из слов «разработка», «сокет», «декоратор» представить в строковом формате и проверить тип и содержание
     # соответствующих переменных. Затем с помощью онлайн-конвертера преобразовать строковые представление в формат
     # Unicode и также проверить тип и содержимое переменных.
@@ -31,3 +34,49 @@ if __name__ == '__main__':
 
     # words = [b'attribute', b'класс', b'функция', b'type']
     # SyntaxError: bytes can only contain ASCII literal characters
+
+    # 4. Преобразовать слова «разработка», «администрирование», «protocol», «standard» из строкового представления
+    # в байтовое и выполнить обратное преобразование (используя методы encode и decode).
+
+    words = ['разработка', 'администрирование', 'protocol', 'standart']
+    print(words)
+
+    words_encoded = []
+    for word in words[:]:
+        words_encoded.append(word.encode(encoding='utf-8', errors='ignore'))
+    print(words_encoded)
+
+    words_decoded = []
+    for word in words_encoded[:]:
+        words_decoded.append(word.decode(encoding='utf-8', errors='ignore'))
+    print(words_decoded)
+
+    # 5. Выполнить пинг веб-ресурсов yandex.ru, youtube.com и преобразовать результаты из байтовового в строковый тип
+    # на кириллице.
+
+    hosts = ['yandex.ru', 'youtube.com']
+    max_count = 3
+
+    for host in hosts:
+        args = ['ping', host]
+        ping_yandex = subprocess.Popen(args, stdout=subprocess.PIPE)
+
+        count = 0
+        for line in ping_yandex.stdout:
+            if count <= max_count:
+                l = line.decode(encoding='cp866')
+                print(type(l), l)
+                count += 1
+            else:
+                break
+
+    # 6. Создать текстовый файл test_file.txt, заполнить его тремя строками: «сетевое программирование», «сокет»,
+    # «декоратор». Проверить кодировку файла по умолчанию. Принудительно открыть файл в формате Unicode и вывести его
+    # содержимое.
+
+    # file test_file.txt
+    # test_file.txt: Unicode text, UTF-8 text
+    source_file = 'test_file.txt'
+    with open(source_file, 'r', encoding='utf-8') as f:
+        for line in f.readlines():
+            print(line)
