@@ -1,9 +1,12 @@
 import argparse
 import json
+import logging
 import time
+import log.server_log_config
 from socket import *
 
 ENCODING = 'utf-8'
+server_log = logging.getLogger('server')
 
 
 def get_params():
@@ -37,7 +40,9 @@ def process_message(message):
     }
 
     if 'action' in message.keys() and message['action'] == 'presence':
+        server_log.info('http 200 answered')
         return answer_200
+    server_log.warning('http 400 answered')
     return answer_400
 
 
@@ -46,10 +51,11 @@ def process_request(s):
 
     # Получение сообщения от клиента
     data = client.recv(1000000)
-    print(data.decode(ENCODING))
+    server_log.info('Request is %s', data.decode(ENCODING))
 
     message = json.loads(data)
     answer_json = json.dumps(process_message(message))
+    server_log.info('Answer is %s', answer_json)
 
     client.send(answer_json.encode(ENCODING))
     client.close()
@@ -57,6 +63,7 @@ def process_request(s):
 
 def start_server(server_ip: str, server_port: int):
     s = start_listener(server_ip=server_ip, server_port=server_port)
+    server_log.info('Server started')
 
     while True:
         process_request(s)
@@ -70,4 +77,4 @@ if __name__ == '__main__':
         start_server(server_ip=addr,
                      server_port=port)
     except Exception as e:
-        print(e)
+        server_log.error("Can't start server: %s", e)
