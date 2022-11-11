@@ -1,6 +1,6 @@
 import unittest
 
-from homework_04.client import send_presence_to_server
+from async_chat.client import send_presence_to_server
 
 
 class TestClient(unittest.TestCase):

@@ -1,9 +1,12 @@
 import argparse
 import json
+import logging
 import time
+import log.client_log_config
 from socket import *
 
 ENCODING = 'utf-8'
+client_log = logging.getLogger('client')
 
 
 def get_params():
@@ -20,6 +23,7 @@ def get_params():
 def start_client(server_ip: str, server_port: int):
     s = socket(AF_INET, SOCK_STREAM)
     s.connect((server_ip, server_port))
+    client_log.info('Connected to server %s', server_ip)
 
     return s
 
@@ -42,8 +46,9 @@ def send_presence_message(s):
 
 def send_presence_to_server(server_ip: str, server_port: int):
     s = start_client(server_ip=server_ip, server_port=server_port)
+    client_log.info('Client started')
     sent_message = send_presence_message(s)
-    print(sent_message)
+    client_log.info(sent_message)
     s.close()
 
 
@@ -55,4 +60,4 @@ if __name__ == '__main__':
         send_presence_to_server(server_ip=addr,
                                 server_port=port)
     except Exception as e:
-        print(e)
+        client_log.error("Can't start client: %s", e)
