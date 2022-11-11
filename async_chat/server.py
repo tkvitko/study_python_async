@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import time
+import inspect
 import log.server_log_config
 from socket import *
 
@@ -9,6 +10,21 @@ ENCODING = 'utf-8'
 server_log = logging.getLogger('server')
 
 
+def log(func):
+    def wrapper(*args, **kwargs):
+        # получение имени вызвавшей функции:
+        current_frame = inspect.currentframe()
+        caller_frame = current_frame.f_back
+        code_obj = caller_frame.f_code
+        code_obj_name = code_obj.co_name
+
+        server_log.info('Function %s %s called from function "%s"', func.__name__, args, code_obj_name)
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@log
 def get_params():
     parser = argparse.ArgumentParser()
     parser.add_argument('--addr', '-a', help="ip address to listen on", type=str, default='0.0.0.0')
@@ -20,6 +36,7 @@ def get_params():
     return addr, port
 
 
+@log
 def start_listener(server_ip: str, server_port: int):
     # Поднятие слушателя
     s = socket(AF_INET, SOCK_STREAM)
@@ -28,6 +45,7 @@ def start_listener(server_ip: str, server_port: int):
     return s
 
 
+@log
 def process_message(message):
     answer_200 = {
         "response": 200,
@@ -46,6 +64,7 @@ def process_message(message):
     return answer_400
 
 
+@log
 def process_request(s):
     client, addr = s.accept()
 
@@ -61,6 +80,7 @@ def process_request(s):
     client.close()
 
 
+@log
 def start_server(server_ip: str, server_port: int):
     s = start_listener(server_ip=server_ip, server_port=server_port)
     server_log.info('Server started')
