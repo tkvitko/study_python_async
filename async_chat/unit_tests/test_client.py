@@ -1,6 +1,6 @@
 import unittest
 
-from async_chat.client import send_presence_to_server
+from async_chat.client import interact_with_server
 
 
 class TestClient(unittest.TestCase):
@@ -8,7 +8,7 @@ class TestClient(unittest.TestCase):
     test_server = ('0.0.0.0', 8000)
 
     def test_send_presence_to_server(self):
-        self.assertEqual(send_presence_to_server(*self.test_server), None)
+        self.assertEqual(interact_with_server(*self.test_server), None)
 
 
 if __name__ == '__main__':
