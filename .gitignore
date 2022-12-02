@@ -1,3 +1,4 @@
 .idea/
 venv/
 async_chat/logs/
+cource_project/chat/chat.sqlite
