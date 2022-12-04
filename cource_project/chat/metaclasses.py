@@ -3,7 +3,7 @@ import dis
 
 class ClientVerifier(type):
     def __init__(self, class_name, bases, class_dict):
-        forbidden_methods = ['accept', 'listen', 'socket']
+        forbidden_methods = ['accept', 'listen']#, 'socket']
         methods = []
         for function in class_dict:
             try:
