@@ -8,11 +8,14 @@ from chat.functions import receive_message, send_message, log
 from chat.descriptors import Port
 from chat.metaclasses import ServerVerifier
 
+from chat.db import ServerDatabase
+
 LOGGER = logging.getLogger('server')
 
 
 class Server(metaclass=ServerVerifier):
     port = Port()
+    db = ServerDatabase()
 
     @log
     def __init__(self):
@@ -24,8 +27,8 @@ class Server(metaclass=ServerVerifier):
         self.port = args.port
 
     # @log
-    @staticmethod
-    def process_message_from_client(message, messages_list,
+    # @staticmethod
+    def process_message_from_client(self, message, messages_list,
                                     client, clients, usernames):
 
         LOGGER.debug(f'New message from client : {message}')
@@ -35,6 +38,8 @@ class Server(metaclass=ServerVerifier):
             print(usernames)
             if message['user']['account_name'] not in usernames.keys():
                 usernames[message['user']['account_name']] = client
+                client_ip, client_port = client.getpeername()
+                self.db.add_user(message['user']['account_name'], client_ip, client_port)
                 send_message(client, ANSWER_200)
             else:
                 response = ANSWER_400
