@@ -3,7 +3,7 @@ import argparse
 import logging
 import select
 import chat.client_log_config
-from chat.constants import MAX_CONNECTIONS, ANSWER_200, ANSWER_400, DEFAULT_IP, DEFAULT_PORT
+from chat.constants import MAX_CONNECTIONS, ANSWER_200, ANSWER_400, DEFAULT_IP, DEFAULT_PORT, ANSWER_202
 from chat.functions import receive_message, send_message, log
 from chat.descriptors import Port
 from chat.metaclasses import ServerVerifier
@@ -39,7 +39,9 @@ class Server(metaclass=ServerVerifier):
             if message['user']['account_name'] not in usernames.keys():
                 usernames[message['user']['account_name']] = client
                 client_ip, client_port = client.getpeername()
-                self.db.add_user(message['user']['account_name'], client_ip, client_port)
+                user_exists = self.db.check_user_exists(message['user']['account_name'])
+                if not user_exists:
+                    self.db.add_user(message['user']['account_name'], client_ip, client_port)
                 send_message(client, ANSWER_200)
             else:
                 response = ANSWER_400
@@ -47,12 +49,12 @@ class Server(metaclass=ServerVerifier):
                 send_message(client, response)
                 clients.remove(client)
                 client.close()
-            return
 
         # Message from client
         elif 'action' in message and message['action'] == 'message' and \
                 'to' in message and 'time' in message and 'from' in message and 'message_text' in message:
             messages_list.append(message)
+            self.db.save_message(from_user=message['from'], to_user=message['to'], text=message['message_text'])
             return
 
         # Client disconnection
@@ -62,10 +64,28 @@ class Server(metaclass=ServerVerifier):
             del usernames[message['account_name']]
             return
 
+        # Get contacts
+        elif 'action' in message and message['action'] == 'get_contacts' and 'account_name' in message:
+            contacts = self.db.get_user_contacts(message['account_name'])
+            answer = ANSWER_202
+            answer['alert'] = f'{contacts}'
+            send_message(client, answer)
+
+        # Add contact
+        elif 'action' in message and message['action'] == 'add_contact' and 'account_name' in message and 'user_id' in message:
+            print(message)
+            self.db.add_contact_for_user(message['account_name'], message['user_id'])
+            send_message(client, ANSWER_200)
+
+        # Delete contact
+        elif 'action' in message and message['action'] == 'del_contact' and 'account_name' in message and 'user_id' in message:
+            self.db.remove_contact_from_user(message['account_name'], message['user_id'])
+            send_message(client, ANSWER_200)
+
         # Bad request
         else:
             response = ANSWER_400
-            response['errpr'] = 'Bad request'
+            response['error'] = 'Bad request'
             send_message(client, response)
             return
 
