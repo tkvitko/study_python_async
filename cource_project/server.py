@@ -42,6 +42,7 @@ class Server(metaclass=ServerVerifier):
                 user_exists = self.db.check_user_exists(message['user']['account_name'])
                 if not user_exists:
                     self.db.add_user(message['user']['account_name'], client_ip, client_port)
+                self.db.set_user_status(message['user']['account_name'], is_online=True)
                 send_message(client, ANSWER_200)
             else:
                 response = ANSWER_400
@@ -60,6 +61,7 @@ class Server(metaclass=ServerVerifier):
         # Client disconnection
         elif 'action' in message and message['action'] == 'exit' and 'account_name' in message:
             clients.remove(usernames[message['account_name']])
+            self.db.set_user_status(message['account_name'], is_online=False)
             usernames[message['account_name']].close()
             del usernames[message['account_name']]
             return

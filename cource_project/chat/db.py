@@ -18,10 +18,12 @@ class ServerDatabase:
         id = Column(Integer, primary_key=True)
         login = Column(String)
         ip = Column(String)
+        online = Column(Integer)
 
         def __init__(self, login, ip):
             self.login = login
             self.ip = ip
+            self.online = False
 
         def __repr__(self):
             return "<User('%s','%s')>" % (self.login, self.ip)
@@ -116,17 +118,31 @@ class ServerDatabase:
             return True
         return False
 
+    def get_users(self):
+        return [[user.login, user.online] for user in self.session.query(self.User).all()]
+
     def save_message(self, from_user, to_user, text):
         message = self.Message(from_user, to_user, text)
         self.session.add(message)
         self.session.commit()
 
+    def set_user_status(self, user_login, is_online):
+        user = self.session.query(self.User).filter_by(login=user_login).first()
+        user.online = 1 if is_online else 0
+        self.session.commit()
+
+    def get_db_engine(self):
+        return self.engine
+
 
 if __name__ == '__main__':
     db = ServerDatabase()
     # db.add_user('client_10', '192.168.1.4', 8888)
-    db.save_message('yyy', 'xxx', 'hell')
+    # db.save_message('yyy', 'xxx', 'hell')
     # db.add_user('client_2', '192.168.1.5', 8888)
     # db.add_contact_for_user('client_1', 'client_4')
     # db.add_contact_for_user('client_2', 'client_3')
     # print(db.get_user_contacts('client_1'))
+    # print(db.get_users())
+    # db.set_user_status('client_10', is_online=False)
+    print(db.engine)
