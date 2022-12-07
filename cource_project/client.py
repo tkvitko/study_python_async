@@ -71,28 +71,38 @@ class Client(metaclass=ClientVerifier):
             LOGGER.critical('Connection with server lost')
             sys.exit(1)
 
-    # @log
-    def user_interactions(self, sock, username):
-        self.print_help()
-        while True:
-            command = input('Enter command here: ')
-            if command == 'message':
-                self.create_message(sock, username)
-            elif command == 'help':
-                self.print_help()
-            elif command == 'exit':
-                exit_message = {
-                    'action': 'exit',
-                    'time': time.time(),
-                    'account_name': username
-                }
-                send_message(sock, exit_message)
-                print('Connection closed')
-                LOGGER.info('Connection closed by user')
-                time.sleep(0.5)
-                break
-            else:
-                print('Bad command or filename. Type help')
+    @staticmethod
+    def add_contact(sock, account_name):
+        message_dict = {
+            'action': 'add_contact',
+            'account_name': account_name,
+            'user_id': input('Nickname: '),
+            'time': time.time()
+        }
+        LOGGER.debug(f'Dict message here: {message_dict}')
+        try:
+            send_message(sock, message_dict)
+            print(message_dict)
+            LOGGER.info(f'{message_dict["user_id"]} has been added to contact list')
+        except:
+            LOGGER.critical('Connection with server lost')
+            sys.exit(1)
+
+    @staticmethod
+    def delete_contact(sock, account_name):
+        message_dict = {
+            'action': 'del_contact',
+            'account_name': account_name,
+            'user_id': input('Nickname: '),
+            'time': time.time()
+        }
+        LOGGER.debug(f'Dict message here: {message_dict}')
+        try:
+            send_message(sock, message_dict)
+            LOGGER.info(f'{message_dict["user_id"]} has been deleted from contact list')
+        except:
+            LOGGER.critical('Connection with server lost')
+            sys.exit(1)
 
     # @log
     @staticmethod
@@ -109,9 +119,21 @@ class Client(metaclass=ClientVerifier):
         return presence_body
 
     @staticmethod
+    def get_contact_list(account_name):
+        """Функция генерирует запрос списка контактов"""
+        presence_body = {
+            'action': 'get_contacts',
+            'time': time.time(),
+            'account_name': account_name
+        }
+        LOGGER.debug(f'Get contacts requesr message has been created for {account_name}')
+        return presence_body
+
+    @staticmethod
     def print_help():
         print('Commands list:')
         print('message - send message to user')
+        print('add - add contact')
         print('help - this help')
         print('exit - close client')
 
@@ -122,8 +144,37 @@ class Client(metaclass=ClientVerifier):
         if 'response' in message:
             if message['response'] == 200:
                 return '200 : OK'
+            elif message['response'] == 202:
+                return message['alert']
             elif message['response'] == 400:
                 raise ServerError(f'400 : {message["error"]}')
+
+    # @log
+    def user_interactions(self, sock, username):
+        self.print_help()
+        while True:
+            command = input('Enter command here: ')
+            if command == 'message':
+                self.create_message(sock, username)
+            elif command == 'help':
+                self.print_help()
+            elif command == 'add':
+                self.add_contact(sock, username)
+            elif command == 'del':
+                self.delete_contact(sock, username)
+            elif command == 'exit':
+                exit_message = {
+                    'action': 'exit',
+                    'time': time.time(),
+                    'account_name': username
+                }
+                send_message(sock, exit_message)
+                print('Connection closed')
+                LOGGER.info('Connection closed by user')
+                time.sleep(0.5)
+                break
+            else:
+                print('Bad command or filename. Type help')
 
     def start(self):
         print('Client started')
@@ -143,6 +194,13 @@ class Client(metaclass=ClientVerifier):
             answer = self.process_response_ans(receive_message(transport))
             LOGGER.info(f'Connected to server. Server answer: {answer}')
             print(f'Connected to server. Server answer: {answer}')
+
+            get_contacts_message = self.get_contact_list(self.username)
+            send_message(transport, get_contacts_message)
+            answer = self.process_response_ans(receive_message(transport))
+            LOGGER.info(f'Connected to server. Server answer: {answer}')
+            print(f'Connected to server. Server answer: {answer}')
+
         except json.JSONDecodeError:
             LOGGER.error('Problems with JSON from server')
             sys.exit(1)

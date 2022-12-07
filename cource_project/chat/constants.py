@@ -11,6 +11,12 @@ ANSWER_200 = {
     'response': 200,
     "time": time.time()
 }
+
+ANSWER_202 = {
+    'response': 202,
+    "time": time.time()
+}
+
 ANSWER_400 = {
     'response': 400,
     "time": time.time()
