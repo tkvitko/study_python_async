@@ -1,6 +1,16 @@
 import time
 
 
+class ServerError(Exception):
+    """Исключение - ошибка сервера"""
+
+    def __init__(self, text):
+        self.text = text
+
+    def __str__(self):
+        return self.text
+
+
 DEFAULT_PORT = 8080
 DEFAULT_IP = '0.0.0.0'
 MAX_CONNECTIONS = 5

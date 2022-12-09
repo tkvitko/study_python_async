@@ -41,7 +41,7 @@ class ServerDatabase:
             self.text = text
 
         def __repr__(self):
-            return "<User('%s','%s','%s')>" % (self.from_user, self.to_user, self.text)
+            return "<Message('%s','%s','%s')>" % (self.from_user, self.to_user, self.text)
 
     class UserHistory(Base):
         __tablename__ = 'users_history'
@@ -56,7 +56,7 @@ class ServerDatabase:
             self.ip_address = ip_address
 
         def __repr__(self):
-            return "<User('%s','%s', '%s')>" % (self.login, self.time, self.ip_address)
+            return "<UserHistory('%s','%s', '%s')>" % (self.login, self.time, self.ip_address)
 
     class Contact(Base):
         __tablename__ = 'contacts'
@@ -69,7 +69,7 @@ class ServerDatabase:
             self.friend = friend
 
         def __repr__(self):
-            return "<User('%s','%s')>" % (self.owner, self.friend)
+            return "<Contact('%s','%s')>" % (self.owner, self.friend)
 
     def __init__(self):
         self.engine = create_engine(f'sqlite:///{DB_FILE}', echo=True)
@@ -126,6 +126,11 @@ class ServerDatabase:
         self.session.add(message)
         self.session.commit()
 
+    def get_messages_from_db(self, from_user, to_user):
+        messages = self.session.query(self.Message).filter_by(from_user=from_user, to_user=to_user).all()
+        messages.extend(self.session.query(self.Message).filter_by(from_user=to_user, to_user=from_user).all())
+        return [message.text for message in messages]
+
     def set_user_status(self, user_login, is_online):
         user = self.session.query(self.User).filter_by(login=user_login).first()
         user.online = 1 if is_online else 0
@@ -145,4 +150,6 @@ if __name__ == '__main__':
     # print(db.get_user_contacts('client_1'))
     # print(db.get_users())
     # db.set_user_status('client_10', is_online=False)
-    print(db.engine)
+    # print(db.engine)
+    print(db.get_messages_from_db('Taras', 'Marina'))
+
