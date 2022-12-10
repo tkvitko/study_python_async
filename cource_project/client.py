@@ -1,234 +1,67 @@
-import sys
-import json
-import socket
-import time
-import argparse
 import logging
-import threading
 import chat.client_log_config
-from chat.constants import DEFAULT_PORT, DEFAULT_IP
-from chat.functions import receive_message, send_message, log
-from chat.metaclasses import ClientVerifier
+import argparse
+import sys
+from PyQt5.QtWidgets import QApplication
 
-LOGGER = logging.getLogger('client')
-
-
-class ServerError(Exception):
-    """Исключение - ошибка сервера"""
-
-    def __init__(self, text):
-        self.text = text
-
-    def __str__(self):
-        return self.text
+from chat.functions import log
+from chat.constants import DEFAULT_IP, DEFAULT_PORT, ServerError
+from chat.client_transport import ClientTransport
+from chat.client_ui import ClientMainWindow
+from chat.client_start_dialog import UserNameDialog
 
 
-class Client(metaclass=ClientVerifier):
-
-    # @log
-    def __init__(self):
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--addr', '-a', help="ip address to listen on", type=str, default=DEFAULT_IP)
-        parser.add_argument('--port', '-p', help="tcp port to listen on", type=int, default=DEFAULT_PORT)
-        parser.add_argument('--name', '-n', help="user name", type=str, default=None)
-        args = parser.parse_args()
-        self.server_addr = args.addr
-        self.server_port = args.port
-        self.username = args.name
-
-    # @log
-    @staticmethod
-    def receive_message_from_server(sock, me):
-        while True:
-            try:
-                message = receive_message(sock)
-                if 'action' in message and message['action'] == 'message' and 'from' in message and 'to' in message \
-                        and 'message_text' in message and message['to'] == me:
-                    print(f'\nMessage received from {message["from"]}: \n{message["message_text"]}')
-                    LOGGER.info(f'\nMessage received from {message["from"]}: \n{message["message_text"]}')
-                else:
-                    LOGGER.error(f'Wrong message received from server: {message}')
-            except (OSError, ConnectionError, ConnectionAbortedError,
-                    ConnectionResetError, json.JSONDecodeError):
-                LOGGER.critical(f'Connection with server lost')
-                break
-
-    # @log
-    @staticmethod
-    def create_message(sock, account_name):
-        message_dict = {
-            'action': 'message',
-            'from': account_name,
-            'to': input('To: '),
-            'time': time.time(),
-            'message_text': input('Text: ')
-        }
-        LOGGER.debug(f'Dict message here: {message_dict}')
-        try:
-            send_message(sock, message_dict)
-            LOGGER.info(f'Message sent to {message_dict["to"]}')
-        except:
-            LOGGER.critical('Connection with server lost')
-            sys.exit(1)
-
-    @staticmethod
-    def add_contact(sock, account_name):
-        message_dict = {
-            'action': 'add_contact',
-            'account_name': account_name,
-            'user_id': input('Nickname: '),
-            'time': time.time()
-        }
-        LOGGER.debug(f'Dict message here: {message_dict}')
-        try:
-            send_message(sock, message_dict)
-            print(message_dict)
-            LOGGER.info(f'{message_dict["user_id"]} has been added to contact list')
-        except:
-            LOGGER.critical('Connection with server lost')
-            sys.exit(1)
-
-    @staticmethod
-    def delete_contact(sock, account_name):
-        message_dict = {
-            'action': 'del_contact',
-            'account_name': account_name,
-            'user_id': input('Nickname: '),
-            'time': time.time()
-        }
-        LOGGER.debug(f'Dict message here: {message_dict}')
-        try:
-            send_message(sock, message_dict)
-            LOGGER.info(f'{message_dict["user_id"]} has been deleted from contact list')
-        except:
-            LOGGER.critical('Connection with server lost')
-            sys.exit(1)
-
-    # @log
-    @staticmethod
-    def create_presence(account_name):
-        """Функция генерирует запрос о присутствии клиента"""
-        presence_body = {
-            'action': 'presence',
-            'time': time.time(),
-            'user': {
-                'account_name': account_name
-            }
-        }
-        LOGGER.debug(f'Presence has been created for {account_name}')
-        return presence_body
-
-    @staticmethod
-    def get_contact_list(account_name):
-        """Функция генерирует запрос списка контактов"""
-        presence_body = {
-            'action': 'get_contacts',
-            'time': time.time(),
-            'account_name': account_name
-        }
-        LOGGER.debug(f'Get contacts requesr message has been created for {account_name}')
-        return presence_body
-
-    @staticmethod
-    def print_help():
-        print('Commands list:')
-        print('message - send message to user')
-        print('add - add contact')
-        print('help - this help')
-        print('exit - close client')
-
-    # @log
-    @staticmethod
-    def process_response_ans(message):
-        LOGGER.debug(f'Разбор приветственного сообщения от сервера: {message}')
-        if 'response' in message:
-            if message['response'] == 200:
-                return '200 : OK'
-            elif message['response'] == 202:
-                return message['alert']
-            elif message['response'] == 400:
-                raise ServerError(f'400 : {message["error"]}')
-
-    # @log
-    def user_interactions(self, sock, username):
-        self.print_help()
-        while True:
-            command = input('Enter command here: ')
-            if command == 'message':
-                self.create_message(sock, username)
-            elif command == 'help':
-                self.print_help()
-            elif command == 'add':
-                self.add_contact(sock, username)
-            elif command == 'del':
-                self.delete_contact(sock, username)
-            elif command == 'exit':
-                exit_message = {
-                    'action': 'exit',
-                    'time': time.time(),
-                    'account_name': username
-                }
-                send_message(sock, exit_message)
-                print('Connection closed')
-                LOGGER.info('Connection closed by user')
-                time.sleep(0.5)
-                break
-            else:
-                print('Bad command or filename. Type help')
-
-    def start(self):
-        print('Client started')
-
-        # Если имя пользователя не было задано, необходимо запросить пользователя.
-        if not self.username:
-            self.username = input('Enter your name: ')
-
-        LOGGER.info(
-            f'Client started: server is {self.server_addr}:{self.server_port}, username is: {self.username}')
-
-        try:
-            transport = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            transport.connect((self.server_addr, self.server_port))
-            presence_message = self.create_presence(self.username)
-            send_message(transport, presence_message)
-            answer = self.process_response_ans(receive_message(transport))
-            LOGGER.info(f'Connected to server. Server answer: {answer}')
-            print(f'Connected to server. Server answer: {answer}')
-
-            get_contacts_message = self.get_contact_list(self.username)
-            send_message(transport, get_contacts_message)
-            answer = self.process_response_ans(receive_message(transport))
-            LOGGER.info(f'Connected to server. Server answer: {answer}')
-            print(f'Connected to server. Server answer: {answer}')
-
-        except json.JSONDecodeError:
-            LOGGER.error('Problems with JSON from server')
-            sys.exit(1)
-        except ServerError as error:
-            LOGGER.error(f'Error from server: {error.text}')
-            sys.exit(1)
-        except (ConnectionRefusedError, ConnectionError):
-            LOGGER.critical(
-                f'Cant connect to server {self.server_addr}:{self.server_port}')
-            sys.exit(1)
-        else:
-
-            receiver = threading.Thread(target=self.receive_message_from_server, args=(transport, self.username))
-            receiver.daemon = True
-            receiver.start()
-
-            user_interface = threading.Thread(target=self.user_interactions, args=(transport, self.username))
-            user_interface.daemon = True
-            user_interface.start()
-            LOGGER.debug('Client processes started successfully')
-
-            while True:
-                time.sleep(1)
-                if receiver.is_alive() and user_interface.is_alive():
-                    continue
-                break
+# Инициализация клиентского логера
+logger = logging.getLogger('client')
 
 
+# Парсер аргументов коммандной строки
+@log
+def arg_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--addr', '-a', help="ip address to listen on", type=str, default=DEFAULT_IP)
+    parser.add_argument('--port', '-p', help="tcp port to listen on", type=int, default=DEFAULT_PORT)
+    parser.add_argument('--name', '-n', help="user name", type=str, default=None)
+    args = parser.parse_args()
+    server_addr = args.addr
+    server_port = args.port
+    username = args.name
+
+    return server_addr, server_port, username
+
+
+# Основная функция клиента
 if __name__ == '__main__':
-    client = Client()
-    client.start()
+
+    server_address, server_port, client_name = arg_parser()
+    client_app = QApplication(sys.argv)
+
+    if not client_name:
+        start_dialog = UserNameDialog()
+        client_app.exec_()
+        if start_dialog.ok_pressed:
+            client_name = start_dialog.client_name.text()
+            del start_dialog
+        else:
+            exit(0)
+
+    logger.info(
+        f'Запущен клиент с параметрами: адрес сервера: {server_address} , порт: {server_port}, имя пользователя: {client_name}')
+
+    try:
+        transport = ClientTransport(server_address, server_port, client_name)
+    except ServerError as error:
+        print(error.text)
+        exit(1)
+    transport.setDaemon(True)
+    transport.start()
+
+    # Создаём GUI
+    main_window = ClientMainWindow(transport)
+    main_window.make_connection(transport)
+    main_window.setWindowTitle(f'Чат Программа alpha release - {client_name}')
+    client_app.exec_()
+
+    # Раз графическая оболочка закрылась, закрываем транспорт
+    transport.transport_shutdown()
+    transport.join()

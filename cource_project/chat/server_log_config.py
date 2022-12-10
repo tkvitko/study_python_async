@@ -12,5 +12,5 @@ server_log_handler = handlers.TimedRotatingFileHandler(filename=os.path.join(LOG
 server_log_handler.setFormatter(log_format)
 
 server_log = logging.getLogger('server')
-server_log.setLevel(logging.DEBUG)
+server_log.setLevel(logging.INFO)
 server_log.addHandler(server_log_handler)

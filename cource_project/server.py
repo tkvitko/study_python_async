@@ -66,11 +66,25 @@ class Server(metaclass=ServerVerifier):
             del usernames[message['account_name']]
             return
 
+        # Get messages history
+        elif 'action' in message and message['action'] == 'get_messages' and 'account_name' in message and 'to' in message:
+            messages = self.db.get_messages_from_db(message['account_name'], message['to'])
+            answer = ANSWER_202
+            answer['alert'] = messages
+            send_message(client, answer)
+
         # Get contacts
         elif 'action' in message and message['action'] == 'get_contacts' and 'account_name' in message:
             contacts = self.db.get_user_contacts(message['account_name'])
             answer = ANSWER_202
-            answer['alert'] = f'{contacts}'
+            answer['alert'] = contacts
+            send_message(client, answer)
+
+        # Get all users
+        elif 'action' in message and message['action'] == 'get_users' and 'account_name' in message:
+            users = [user[0] for user in self.db.get_users()]
+            answer = ANSWER_202
+            answer['alert'] = users
             send_message(client, answer)
 
         # Add contact
