@@ -4,6 +4,7 @@ import socket
 import sys
 import threading
 import time
+import hashlib
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
@@ -21,13 +22,14 @@ class ClientTransport(threading.Thread, QObject):  # , metaclass=ClientVerifier)
     connection_lost = pyqtSignal()
 
     # @log
-    def __init__(self, server_addr, server_port, username):
+    def __init__(self, server_addr, server_port, username, password):
         threading.Thread.__init__(self)
         QObject.__init__(self)
 
         self.server_addr = server_addr
         self.server_port = server_port
         self.username = username
+        self.password = password
         self.transport = None
         self.all_users, self.contacts = self.connect_to_server()
         self.running = True
@@ -40,7 +42,8 @@ class ClientTransport(threading.Thread, QObject):  # , metaclass=ClientVerifier)
             'from': self.username,
             'to': to,
             'time': time.time(),
-            'message_text': text
+            'message_text': text,
+            'token': 'random'
         }
         LOGGER.debug(f'Dict message here: {message_dict}')
         try:
@@ -56,7 +59,8 @@ class ClientTransport(threading.Thread, QObject):  # , metaclass=ClientVerifier)
             'action': 'add_contact',
             'account_name': self.username,
             'user_id': account_name,
-            'time': time.time()
+            'time': time.time(),
+            'token': 'random'
         }
         LOGGER.debug(f'Dict message here: {message_dict}')
         try:
@@ -73,7 +77,8 @@ class ClientTransport(threading.Thread, QObject):  # , metaclass=ClientVerifier)
             'action': 'del_contact',
             'account_name': self.username,
             'user_id': account_name,
-            'time': time.time()
+            'time': time.time(),
+            'token': 'random'
         }
         LOGGER.debug(f'Dict message here: {message_dict}')
         try:
@@ -90,7 +95,8 @@ class ClientTransport(threading.Thread, QObject):  # , metaclass=ClientVerifier)
             'action': 'get_messages',
             'time': time.time(),
             'account_name': account_name,
-            'to': to
+            'to': to,
+            'token': 'random'
         }
         try:
             with socket_lock:
@@ -104,13 +110,19 @@ class ClientTransport(threading.Thread, QObject):  # , metaclass=ClientVerifier)
 
     # @log
     @staticmethod
-    def create_presence(account_name):
+    def create_presence(account_name, password):
         """Функция генерирует запрос о присутствии клиента"""
+
+        h = hashlib.sha256()
+        h.update(password.encode('ascii'))
+        password_hash = h.hexdigest()
+
         presence_body = {
             'action': 'presence',
             'time': time.time(),
             'user': {
-                'account_name': account_name
+                'account_name': account_name,
+                'password_hash': password_hash
             }
         }
         LOGGER.debug(f'Presence has been created for {account_name}')
@@ -121,7 +133,8 @@ class ClientTransport(threading.Thread, QObject):  # , metaclass=ClientVerifier)
         message_dict = {
             'action': 'get_contacts',
             'time': time.time(),
-            'account_name': account_name
+            'account_name': account_name,
+            'token': 'random'
         }
         try:
             with socket_lock:
@@ -138,7 +151,8 @@ class ClientTransport(threading.Thread, QObject):  # , metaclass=ClientVerifier)
         message_dict = {
             'action': 'get_users',
             'time': time.time(),
-            'account_name': account_name
+            'account_name': account_name,
+            'token': 'random'
         }
         try:
             with socket_lock:
@@ -169,6 +183,8 @@ class ClientTransport(threading.Thread, QObject):  # , metaclass=ClientVerifier)
                 return message['alert']
             elif message['response'] == 400:
                 raise ServerError(f'400 : {message["error"]}')
+            elif message['response'] == 403:
+                raise ServerError(f'403 : {message["error"]}')
 
     def connect_to_server(self):
         print('Client started')
@@ -179,7 +195,7 @@ class ClientTransport(threading.Thread, QObject):  # , metaclass=ClientVerifier)
         try:
             self.transport = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.transport.connect((self.server_addr, self.server_port))
-            presence_message = self.create_presence(self.username)
+            presence_message = self.create_presence(self.username, self.password)
             send_message(self.transport, presence_message)
             answer = self.process_response_ans(receive_message(self.transport))
             LOGGER.info(f'Connected to server. Server answer: {answer}')
@@ -211,7 +227,8 @@ class ClientTransport(threading.Thread, QObject):  # , metaclass=ClientVerifier)
         exit_message = {
             'action': 'exit',
             'time': time.time(),
-            'account_name': self.username
+            'account_name': self.username,
+            'token': 'random'
         }
         with socket_lock:
             send_message(self.transport, exit_message)

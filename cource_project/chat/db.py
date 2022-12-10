@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, DateTime
@@ -19,11 +20,13 @@ class ServerDatabase:
         login = Column(String)
         ip = Column(String)
         online = Column(Integer)
+        password_hash = Column(Integer)
 
-        def __init__(self, login, ip):
+        def __init__(self, login, ip, password_hash):
             self.login = login
             self.ip = ip
             self.online = False
+            self.password_hash = password_hash
 
         def __repr__(self):
             return "<User('%s','%s')>" % (self.login, self.ip)
@@ -78,8 +81,8 @@ class ServerDatabase:
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
-    def add_user(self, login, ip, port):
-        user = self.User(login, ip)
+    def add_user(self, login, ip, password_hash):
+        user = self.User(login, ip, password_hash)
         self.session.add(user)
 
         now = datetime.datetime.now()
@@ -139,6 +142,10 @@ class ServerDatabase:
     def get_db_engine(self):
         return self.engine
 
+    def check_users_password_hash(self, user_login, password_hash):
+        user = self.session.query(self.User).filter_by(login=user_login).first()
+        return user.password_hash == password_hash
+
 
 if __name__ == '__main__':
     db = ServerDatabase()
@@ -151,5 +158,13 @@ if __name__ == '__main__':
     # print(db.get_users())
     # db.set_user_status('client_10', is_online=False)
     # print(db.engine)
-    print(db.get_messages_from_db('Taras', 'Marina'))
+    # print(db.get_messages_from_db('Taras', 'Marina'))
+    h = hashlib.sha256()
+    h.update(b'123456')
+    # db.add_user('Alex', '0.0.0.0', h.hexdigest())
+    print(h.hexdigest())
+    # print(db.check_users_password_hash('Alex', test))
+    k = hashlib.sha256()
+    k.update('123456'.encode('ascii'))
+    print(k.hexdigest())
 

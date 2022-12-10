@@ -10,7 +10,6 @@ from chat.client_transport import ClientTransport
 from chat.client_ui import ClientMainWindow
 from chat.client_start_dialog import UserNameDialog
 
-
 # Инициализация клиентского логера
 logger = logging.getLogger('client')
 
@@ -41,6 +40,7 @@ if __name__ == '__main__':
         client_app.exec_()
         if start_dialog.ok_pressed:
             client_name = start_dialog.client_name.text()
+            password = start_dialog.password.text()
             del start_dialog
         else:
             exit(0)
@@ -49,7 +49,7 @@ if __name__ == '__main__':
         f'Запущен клиент с параметрами: адрес сервера: {server_address} , порт: {server_port}, имя пользователя: {client_name}')
 
     try:
-        transport = ClientTransport(server_address, server_port, client_name)
+        transport = ClientTransport(server_address, server_port, client_name, password)
     except ServerError as error:
         print(error.text)
         exit(1)

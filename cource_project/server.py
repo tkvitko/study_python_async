@@ -3,7 +3,8 @@ import argparse
 import logging
 import select
 import chat.client_log_config
-from chat.constants import MAX_CONNECTIONS, ANSWER_200, ANSWER_400, DEFAULT_IP, DEFAULT_PORT, ANSWER_202
+from chat.auth import login_required
+from chat.constants import MAX_CONNECTIONS, ANSWER_200, ANSWER_400, DEFAULT_IP, DEFAULT_PORT, ANSWER_202, ANSWER_403
 from chat.functions import receive_message, send_message, log
 from chat.descriptors import Port
 from chat.metaclasses import ServerVerifier
@@ -26,8 +27,7 @@ class Server(metaclass=ServerVerifier):
         self.addr = args.addr
         self.port = args.port
 
-    # @log
-    # @staticmethod
+    @login_required
     def process_message_from_client(self, message, messages_list,
                                     client, clients, usernames):
 
@@ -35,15 +35,25 @@ class Server(metaclass=ServerVerifier):
 
         # Client connection
         if 'action' in message and message['action'] == 'presence' and 'time' in message and 'user' in message:
-            print(usernames)
             if message['user']['account_name'] not in usernames.keys():
                 usernames[message['user']['account_name']] = client
                 client_ip, client_port = client.getpeername()
                 user_exists = self.db.check_user_exists(message['user']['account_name'])
                 if not user_exists:
-                    self.db.add_user(message['user']['account_name'], client_ip, client_port)
-                self.db.set_user_status(message['user']['account_name'], is_online=True)
-                send_message(client, ANSWER_200)
+                    self.db.add_user(login=message['user']['account_name'],
+                                     ip=client_ip,
+                                     password_hash=message['user']['password_hash'])
+                    send_message(client, ANSWER_200)
+                else:
+                    authorized = self.db.check_users_password_hash(user_login=message['user']['account_name'],
+                                                                   password_hash=message['user']['password_hash'])
+                    if authorized:
+                        self.db.set_user_status(message['user']['account_name'], is_online=True)
+                        send_message(client, ANSWER_200)
+                    else:
+                        response = ANSWER_403
+                        response['error'] = 'Wrong password'
+                        send_message(client, response)
             else:
                 response = ANSWER_400
                 response['error'] = 'There is already user with this username'
@@ -67,7 +77,8 @@ class Server(metaclass=ServerVerifier):
             return
 
         # Get messages history
-        elif 'action' in message and message['action'] == 'get_messages' and 'account_name' in message and 'to' in message:
+        elif 'action' in message and message[
+            'action'] == 'get_messages' and 'account_name' in message and 'to' in message:
             messages = self.db.get_messages_from_db(message['account_name'], message['to'])
             answer = ANSWER_202
             answer['alert'] = messages
@@ -88,13 +99,15 @@ class Server(metaclass=ServerVerifier):
             send_message(client, answer)
 
         # Add contact
-        elif 'action' in message and message['action'] == 'add_contact' and 'account_name' in message and 'user_id' in message:
+        elif 'action' in message and message[
+            'action'] == 'add_contact' and 'account_name' in message and 'user_id' in message:
             print(message)
             self.db.add_contact_for_user(message['account_name'], message['user_id'])
             send_message(client, ANSWER_200)
 
         # Delete contact
-        elif 'action' in message and message['action'] == 'del_contact' and 'account_name' in message and 'user_id' in message:
+        elif 'action' in message and message[
+            'action'] == 'del_contact' and 'account_name' in message and 'user_id' in message:
             self.db.remove_contact_from_user(message['account_name'], message['user_id'])
             send_message(client, ANSWER_200)
 
