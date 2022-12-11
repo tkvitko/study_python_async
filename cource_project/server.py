@@ -1,24 +1,36 @@
+import os
 import socket
 import argparse
 import logging
 import select
+from datetime import datetime
+from logging import handlers
+
 import chat.client_log_config
 from chat.auth import login_required
 from chat.constants import MAX_CONNECTIONS, ANSWER_200, ANSWER_400, DEFAULT_IP, DEFAULT_PORT, ANSWER_202, ANSWER_403
-from chat.functions import receive_message, send_message, log
+from chat.functions import receive_message, send_message#, log
 from chat.descriptors import Port
 from chat.metaclasses import ServerVerifier
 
 from chat.db import ServerDatabase
 
+LOG_DIR = 'logs'
+log_format = logging.Formatter('%(asctime)s %(module)s %(levelname)s %(message)s')
+server_log_handler = handlers.TimedRotatingFileHandler(filename=os.path.join(LOG_DIR, 'server.log'),
+                                                       when='D',
+                                                       interval=1,
+                                                       backupCount=2)
 LOGGER = logging.getLogger('server')
+LOGGER.setLevel(logging.DEBUG)
+LOGGER.addHandler(server_log_handler)
 
 
 class Server(metaclass=ServerVerifier):
     port = Port()
     db = ServerDatabase()
 
-    @log
+    # @log
     def __init__(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('--addr', '-a', help="ip address to listen on", type=str, default=DEFAULT_IP)
@@ -27,11 +39,11 @@ class Server(metaclass=ServerVerifier):
         self.addr = args.addr
         self.port = args.port
 
-    @login_required
+    # @login_required
     def process_message_from_client(self, message, messages_list,
                                     client, clients, usernames):
 
-        LOGGER.debug(f'New message from client : {message}')
+        LOGGER.info(f'New message from client : {message}')
 
         # Client connection
         if 'action' in message and message['action'] == 'presence' and 'time' in message and 'user' in message:
@@ -54,6 +66,7 @@ class Server(metaclass=ServerVerifier):
                         response = ANSWER_403
                         response['error'] = 'Wrong password'
                         send_message(client, response)
+                        LOGGER.debug(f"Response: {response}")
             else:
                 response = ANSWER_400
                 response['error'] = 'There is already user with this username'
@@ -65,7 +78,10 @@ class Server(metaclass=ServerVerifier):
         elif 'action' in message and message['action'] == 'message' and \
                 'to' in message and 'time' in message and 'from' in message and 'message_text' in message:
             messages_list.append(message)
-            self.db.save_message(from_user=message['from'], to_user=message['to'], text=message['message_text'])
+            self.db.save_message(from_user=message['from'],
+                                 to_user=message['to'],
+                                 text=message['message_text'],
+                                 time=datetime.now())
             return
 
         # Client disconnection
@@ -82,7 +98,9 @@ class Server(metaclass=ServerVerifier):
             messages = self.db.get_messages_from_db(message['account_name'], message['to'])
             answer = ANSWER_202
             answer['alert'] = messages
+            print(answer)
             send_message(client, answer)
+            LOGGER.debug(f"Response: {answer}")
 
         # Get contacts
         elif 'action' in message and message['action'] == 'get_contacts' and 'account_name' in message:
@@ -90,6 +108,7 @@ class Server(metaclass=ServerVerifier):
             answer = ANSWER_202
             answer['alert'] = contacts
             send_message(client, answer)
+            LOGGER.debug(f"Response: {answer}")
 
         # Get all users
         elif 'action' in message and message['action'] == 'get_users' and 'account_name' in message:
@@ -97,25 +116,28 @@ class Server(metaclass=ServerVerifier):
             answer = ANSWER_202
             answer['alert'] = users
             send_message(client, answer)
+            LOGGER.debug(f"Response: {answer}")
 
         # Add contact
         elif 'action' in message and message[
             'action'] == 'add_contact' and 'account_name' in message and 'user_id' in message:
-            print(message)
             self.db.add_contact_for_user(message['account_name'], message['user_id'])
             send_message(client, ANSWER_200)
+            LOGGER.debug(f"Response: {ANSWER_200}")
 
         # Delete contact
         elif 'action' in message and message[
             'action'] == 'del_contact' and 'account_name' in message and 'user_id' in message:
             self.db.remove_contact_from_user(message['account_name'], message['user_id'])
             send_message(client, ANSWER_200)
+            LOGGER.debug(f"Response: {ANSWER_200}")
 
         # Bad request
         else:
             response = ANSWER_400
             response['error'] = 'Bad request'
             send_message(client, response)
+            LOGGER.debug(f"Response: {response}")
             return
 
     # @log
@@ -125,7 +147,7 @@ class Server(metaclass=ServerVerifier):
         if message['to'] in usernames:
             if usernames[message['to']] in listen_socks:
                 send_message(usernames[message['to']], message)
-                LOGGER.info(f'Sent message to user {message["to"]} from user {message["from"]}.')
+                LOGGER.info(f'Sent message to user {message["to"]} from user {message["from"]}: message {message}')
             else:
                 raise ConnectionError
         else:

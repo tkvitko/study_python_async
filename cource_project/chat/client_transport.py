@@ -46,10 +46,11 @@ class ClientTransport(threading.Thread, QObject):  # , metaclass=ClientVerifier)
             'token': 'random'
         }
         LOGGER.debug(f'Dict message here: {message_dict}')
+        print(LOGGER)
         try:
-            with socket_lock:
-                send_message(self.transport, message_dict)
-                LOGGER.info(f'Message sent to {message_dict["to"]}')
+            # with socket_lock:
+            send_message(self.transport, message_dict)
+            LOGGER.info(f'Message sent to {message_dict["to"]}')
         except:
             LOGGER.critical('Connection with server lost')
             sys.exit(1)
