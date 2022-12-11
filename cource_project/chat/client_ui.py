@@ -1,5 +1,6 @@
 import logging
 import sys
+from datetime import datetime
 
 from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QBrush, QColor
@@ -67,17 +68,15 @@ class ClientMainWindow(QMainWindow):
         self.ui.text_message.setDisabled(True)
 
     # Заполняем историю сообщений.
-    def history_list_update(self):
+    def history_list_update(self, messages_list):
         # Получаем историю сортированную по дате
-        # list = sorted(self.database.get_history(self.current_chat), key=lambda item: item[3])
-        messages_list = self.transport.get_messages(self.transport.username, self.current_chat)
-        print(f'Message on client: {messages_list}')
+        # messages_list = self.transport.get_messages(self.transport.username, self.current_chat)
         # Если модель не создана, создадим.
         if not self.history_model:
             self.history_model = QStandardItemModel()
             self.ui.list_messages.setModel(self.history_model)
         # Очистим от старых записей
-        self.history_model.clear()
+        # self.history_model.clear()
         # Берём не более 20 последних записей.
         length = len(messages_list)
         start_index = 0
@@ -87,14 +86,14 @@ class ClientMainWindow(QMainWindow):
         # Записи в обратном порядке, поэтому выбираем их с конца и не более 20
         for i in range(start_index, length):
             item = messages_list[i]
-            if item[2] == self.transport.username:
-                mess = QStandardItem(f'Входящее:\n {item[3]}')
+            if item[1] == self.transport.username:
+                mess = QStandardItem(f'Входящее:\n {item[2]}')
                 mess.setEditable(False)
                 mess.setBackground(QBrush(QColor(255, 213, 213)))
                 mess.setTextAlignment(Qt.AlignLeft)
                 self.history_model.appendRow(mess)
             else:
-                mess = QStandardItem(f'Исходящее:\n {item[3]}')
+                mess = QStandardItem(f'Исходящее:\n {item[2]}')
                 mess.setEditable(False)
                 mess.setTextAlignment(Qt.AlignRight)
                 mess.setBackground(QBrush(QColor(204, 255, 204)))
@@ -198,7 +197,6 @@ class ClientMainWindow(QMainWindow):
             return
         try:
             self.transport.send_message(self.current_chat, message_text)
-            pass
         except ServerError as err:
             self.messages.critical(self, 'Ошибка', err.text)
         except OSError as err:
@@ -211,7 +209,8 @@ class ClientMainWindow(QMainWindow):
             self.close()
         else:
             logger.debug(f'Отправлено сообщение для {self.current_chat}: {message_text}')
-            self.history_list_update()
+            current_message = [self.transport.username, self.current_chat, message_text, datetime.now()]
+            self.history_list_update(messages_list=[current_message])
 
     # Слот приёма нового сообщений
     @pyqtSlot(str)
@@ -219,7 +218,9 @@ class ClientMainWindow(QMainWindow):
         print(sender)
         print(self.current_chat)
         if sender == self.current_chat:
-            self.history_list_update()
+            messages_list = self.transport.get_messages(self.transport.username, self.current_chat)
+            self.history_list_update(messages_list)
+            pass
         else:
             # Проверим есть ли такой пользователь у нас в контактах:
             if sender in self.transport.contacts:
@@ -229,6 +230,9 @@ class ClientMainWindow(QMainWindow):
                                           QMessageBox.No) == QMessageBox.Yes:
                     self.current_chat = sender
                     self.set_active_user()
+                    # !!!
+                    messages_list = self.transport.get_messages(self.transport.username, self.current_chat)
+                    self.history_list_update(messages_list)
             else:
                 print('NO')
                 # Раз нету,спрашиваем хотим ли добавить юзера в контакты.

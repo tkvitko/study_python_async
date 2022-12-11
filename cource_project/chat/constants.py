@@ -31,3 +31,8 @@ ANSWER_400 = {
     'response': 400,
     "time": time.time()
 }
+
+ANSWER_403 = {
+    'response': 403,
+    "time": time.time()
+}
