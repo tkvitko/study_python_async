@@ -1,6 +1,6 @@
 import unittest
 
-from cource_project.client import interact_with_server
+from chat_client.src.client import interact_with_server
 
 
 class TestClient(unittest.TestCase):

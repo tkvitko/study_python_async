@@ -6,14 +6,14 @@ import select
 from datetime import datetime
 from logging import handlers
 
-from chat_backend.constants import MAX_CONNECTIONS, ANSWER_200, ANSWER_400, DEFAULT_IP, DEFAULT_PORT, ANSWER_202, ANSWER_403
-from functions.functions import receive_message, send_message#, log
-from chat_backend.descriptors import Port
-from functions.metaclasses import ServerVerifier
+from chat_backend.src.constants import MAX_CONNECTIONS, ANSWER_200, ANSWER_400, DEFAULT_IP, DEFAULT_PORT, ANSWER_202, ANSWER_403
+from chat_backend.src.functions import receive_message, send_message#, log
+from chat_backend.src.descriptors import Port
+from chat_backend.src.metaclasses import ServerVerifier
 
-from chat_backend.db import ServerDatabase
+from chat_backend.src.db import ServerDatabase
 
-LOG_DIR = 'logs'
+LOG_DIR = '../../logs'
 log_format = logging.Formatter('%(asctime)s %(module)s %(levelname)s %(message)s')
 server_log_handler = handlers.TimedRotatingFileHandler(filename=os.path.join(LOG_DIR, 'server.log'),
                                                        when='D',

@@ -3,7 +3,7 @@ import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QTableWidget, QTableWidgetItem, QMainWindow, \
     QLabel, QVBoxLayout
 
-from chat_backend.db import ServerDatabase
+from chat_backend.src.db import ServerDatabase
 
 db = ServerDatabase()
 

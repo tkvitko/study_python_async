@@ -8,8 +8,8 @@ import hashlib
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from functions.functions import receive_message, send_message
-from chat_backend.constants import ServerError
+from chat_backend import receive_message, send_message
+from chat_backend import ServerError
 
 LOGGER = logging.getLogger('client')
 socket_lock = threading.Lock()

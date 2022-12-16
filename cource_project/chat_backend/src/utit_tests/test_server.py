@@ -1,7 +1,7 @@
 import unittest
 
-from cource_project.server import process_message
-from chat_client.unit_tests.testdata import *
+from chat_backend.src.server import process_message
+from chat_client.src.unit_tests.testdata import *
 
 
 class TestServer(unittest.TestCase):
