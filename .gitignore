@@ -1,5 +1,5 @@
 .idea/
 venv/
 async_chat/logs/
-cource_project/chat/chat.sqlite
+cource_project/chat_client/chat.sqlite
 cource_project/chat.sqlite

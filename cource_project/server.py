@@ -6,14 +6,12 @@ import select
 from datetime import datetime
 from logging import handlers
 
-import chat.client_log_config
-from chat.auth import login_required
-from chat.constants import MAX_CONNECTIONS, ANSWER_200, ANSWER_400, DEFAULT_IP, DEFAULT_PORT, ANSWER_202, ANSWER_403
-from chat.functions import receive_message, send_message#, log
-from chat.descriptors import Port
-from chat.metaclasses import ServerVerifier
+from chat_backend.constants import MAX_CONNECTIONS, ANSWER_200, ANSWER_400, DEFAULT_IP, DEFAULT_PORT, ANSWER_202, ANSWER_403
+from functions.functions import receive_message, send_message#, log
+from chat_backend.descriptors import Port
+from functions.metaclasses import ServerVerifier
 
-from chat.db import ServerDatabase
+from chat_backend.db import ServerDatabase
 
 LOG_DIR = 'logs'
 log_format = logging.Formatter('%(asctime)s %(module)s %(levelname)s %(message)s')
