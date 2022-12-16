@@ -1,0 +1,15 @@
+setup.cfg
+setup.py
+src/__init__.py
+src/admin_pages.py
+src/constants.py
+src/db.py
+src/descriptors.py
+src/functions.py
+src/metaclasses.py
+src/server.py
+src/server_log_config.py
+tkvitko_chat_server.egg-info/PKG-INFO
+tkvitko_chat_server.egg-info/SOURCES.txt
+tkvitko_chat_server.egg-info/dependency_links.txt
+tkvitko_chat_server.egg-info/top_level.txt
