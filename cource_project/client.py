@@ -1,14 +1,13 @@
 import logging
-import chat.client_log_config
 import argparse
 import sys
 from PyQt5.QtWidgets import QApplication
 
-from chat.functions import log
-from chat.constants import DEFAULT_IP, DEFAULT_PORT, ServerError
-from chat.client_transport import ClientTransport
-from chat.client_ui import ClientMainWindow
-from chat.client_start_dialog import UserNameDialog
+from functions.functions import log
+from chat_backend.constants import DEFAULT_IP, DEFAULT_PORT, ServerError
+from chat_client.client_transport import ClientTransport
+from chat_client.client_ui import ClientMainWindow
+from chat_client.client_start_dialog import UserNameDialog
 
 # Инициализация клиентского логера
 logger = logging.getLogger('client')

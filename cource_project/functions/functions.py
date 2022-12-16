@@ -2,7 +2,7 @@ import json
 import logging
 import socket
 
-from .constants import MAX_PACKAGE_LENGTH, ENCODING
+from chat_backend.constants import MAX_PACKAGE_LENGTH, ENCODING
 
 functions_log = logging.getLogger('functions')
 
