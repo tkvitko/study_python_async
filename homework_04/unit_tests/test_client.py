@@ -1,6 +1,6 @@
 import unittest
 
-from async_chat.client import interact_with_server
+from homework_04.client import interact_with_server
 
 
 class TestClient(unittest.TestCase):

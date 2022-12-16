@@ -1,6 +1,6 @@
 import unittest
 
-from async_chat.server import process_message
+from homework_04.server import process_message
 from .testdata import *
 
 

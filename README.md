@@ -1,1 +1,10 @@
-# study_python_async
+# Happy chat
+
+## Server
+### Starting
+`python server.py`
+
+
+## Client
+### Starting
+`python client.py`
