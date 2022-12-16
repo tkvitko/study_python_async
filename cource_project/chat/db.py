@@ -13,7 +13,11 @@ Base = declarative_base()
 
 
 class ServerDatabase:
+    """Class to interact with SQL database through SQLAlchemy"""
+
     class User(Base):
+        """User of chat system"""
+
         __tablename__ = 'users'
         id = Column(Integer, primary_key=True)
         login = Column(String)
@@ -31,6 +35,8 @@ class ServerDatabase:
             return "<User('%s','%s')>" % (self.login, self.ip)
 
     class Message(Base):
+        """Message (interaction between users)"""
+
         __tablename__ = 'messages'
         id = Column(Integer, primary_key=True)
         from_user = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -48,6 +54,8 @@ class ServerDatabase:
             return "<Message('%s','%s','%s')>" % (self.from_user, self.to_user, self.text)
 
     class UserHistory(Base):
+        """Object to store user actions"""
+
         __tablename__ = 'users_history'
         id = Column(Integer, primary_key=True)
         login = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -63,6 +71,8 @@ class ServerDatabase:
             return "<UserHistory('%s','%s', '%s')>" % (self.login, self.time, self.ip_address)
 
     class Contact(Base):
+        """Represents the link between two users"""
+
         __tablename__ = 'contacts'
         id = Column(Integer, primary_key=True)
         owner = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -83,6 +93,7 @@ class ServerDatabase:
         self.session = Session()
 
     def add_user(self, login, ip, password_hash):
+        """Add new user to database, commit his action in history"""
         user = self.User(login, ip, password_hash)
         self.session.add(user)
 
@@ -91,7 +102,8 @@ class ServerDatabase:
         self.session.add(user_history)
         self.session.commit()
 
-    def get_contact_object_for_users_pair(self, owner_login, friend_login):
+    def get_contact_object_for_users_pair(self, owner_login, friend_login) -> Contact:
+        """Utility function to get Contact based on pair of users"""
         owner = self.session.query(self.User).filter_by(login=owner_login).first()
         print(owner)
         friend = self.session.query(self.User).filter_by(login=friend_login).first()
@@ -100,37 +112,43 @@ class ServerDatabase:
             return self.Contact(owner.id, friend.id)
 
     def add_contact_for_user(self, owner_login, friend_login):
+        """Create a link between two users"""
         contact = self.get_contact_object_for_users_pair(owner_login, friend_login)
         print(contact)
         self.session.add(contact)
         self.session.commit()
 
     def remove_contact_from_user(self, owner_login, friend_login):
+        """Remove the link between two users"""
         contact = self.get_contact_object_for_users_pair(owner_login, friend_login)
         self.session.delete(contact)
         self.session.commit()
 
     def get_user_contacts(self, user_login):
+        """Get all contacts of a certain user"""
         user = self.session.query(self.User).filter_by(login=user_login).first()
         user_id = user.id
         contacts = self.session.query(self.Contact).filter_by(owner=user_id).all()
-
         return [self.session.query(self.User).filter_by(id=contact.friend).first().login for contact in contacts]
 
-    def check_user_exists(self, user_login):
+    def check_user_exists(self, user_login) -> bool:
+        """Checks if there is user with such login in the database"""
         if self.session.query(self.User).filter_by(login=user_login).first():
             return True
         return False
 
     def get_users(self):
+        """Get all users from database"""
         return [[user.login, user.online] for user in self.session.query(self.User).all()]
 
     def save_message(self, from_user, to_user, text, time):
+        """Save message to database"""
         message = self.Message(from_user, to_user, text, time)
         self.session.add(message)
         self.session.commit()
 
     def get_messages_from_db(self, from_user, to_user):
+        """Get all messages between two users"""
         messages = self.session.query(self.Message).filter_by(from_user=from_user, to_user=to_user).all()
         messages.extend(self.session.query(self.Message).filter_by(from_user=to_user, to_user=from_user).all())
         return sorted(
@@ -139,14 +157,17 @@ class ServerDatabase:
             key=lambda item: item[3])
 
     def set_user_status(self, user_login, is_online):
+        """Set user status (online/offline)"""
         user = self.session.query(self.User).filter_by(login=user_login).first()
         user.online = 1 if is_online else 0
         self.session.commit()
 
     def get_db_engine(self):
+        """Get DB engine"""
         return self.engine
 
     def check_users_password_hash(self, user_login, password_hash):
+        """Check the password's hash of a certain user"""
         user = self.session.query(self.User).filter_by(login=user_login).first()
         return user.password_hash == password_hash
 
