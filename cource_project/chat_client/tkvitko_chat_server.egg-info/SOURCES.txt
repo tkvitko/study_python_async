@@ -1,0 +1,17 @@
+setup.cfg
+setup.py
+src/__init__.py
+src/add_contact.py
+src/auth.py
+src/client.py
+src/client_log_config.py
+src/client_start_dialog.py
+src/client_transport.py
+src/client_ui.py
+src/client_ui_conv.py
+src/del_contact.py
+src/launcher.py
+tkvitko_chat_server.egg-info/PKG-INFO
+tkvitko_chat_server.egg-info/SOURCES.txt
+tkvitko_chat_server.egg-info/dependency_links.txt
+tkvitko_chat_server.egg-info/top_level.txt
