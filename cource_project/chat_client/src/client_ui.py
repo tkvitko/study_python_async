@@ -7,10 +7,10 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem, QBrush, QColor
 from PyQt5.QtWidgets import QMainWindow, qApp, QMessageBox
 
 sys.path.append('../../')
-from chat_client.src.client_ui_conv import Ui_MainClientWindow
-from chat_client.src.add_contact import AddContactDialog
-from chat_client.src.del_contact import DelContactDialog
-from chat_backend import ServerError
+from client_ui_conv import Ui_MainClientWindow
+from add_contact import AddContactDialog
+from del_contact import DelContactDialog
+from constants import ServerError
 
 logger = logging.getLogger('client')
 
